@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Landmine Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .marquee {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            background: linear-gradient(45deg, #1a365d, #2563eb);
+            padding: 10px 0;
+        }
+        
+        .marquee span {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen">
+        <!-- Marquee -->
+        <div class="marquee">
+            <span>THIS PROJECT DONE BY CMR COLLEGE OF ENGINEERING AND TECHNOLOGY students : M.SHASHI VARDHAN REDDY, N.ANUHYA, G.SNEHA</span>
+        </div>
+
+        <!-- Updated Navigation -->
+        <nav class="bg-gray-800 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Admin Dashboard</h1>
+                <div class="flex items-center space-x-6">
+                    <a href="{{ url_for('index') }}" class="hover:text-gray-300">Home</a>
+                    <a href="{{ url_for('admin_dashboard') }}" class="hover:text-gray-300">Statistics</a>
+                    <a href="{{ url_for('navigate') }}" class="hover:text-gray-300">Defuse</a>
+                    <a href="{{ url_for('manage_users') }}" class="hover:text-gray-300">Manage Users</a>
+                    <a href="{{ url_for('about') }}" class="hover:text-gray-300">About</a>
+                    <a href="{{ url_for('logout') }}" class="hover:text-gray-300">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mx-auto px-4 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">System Overview</h2>
+                    <div id="systemStats">
+                        <!-- System statistics will be loaded here -->
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
+                    <div class="space-y-4">
+                        <button onclick="window.location.href='{{ url_for('manage_users') }}'"
+                            class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            Manage Users
+                        </button>
+                        <button onclick="clearAllData()"
+                                class="w-full bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+                            Clear All Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadSystemStats() {
+            try {
+                const response = await fetch('/api/statistics');
+                const data = await response.json();
+                
+                document.getElementById('systemStats').innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="p-4 bg-gray-50 rounded">
+                            <p class="text-gray-600">Total Locations</p>
+                            <p class="text-2xl font-bold">${data.total_locations}</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded">
+                            <p class="text-gray-600">Pattern Type</p>
+                            <p class="text-2xl font-bold">${data.pattern_type}</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded">
+                            <p class="text-gray-600">Success Rate</p>
+                            <p class="text-2xl font-bold">${data.accuracy.toFixed(1)}%</p>
+                        </div>
+                        <div class="p-4 bg-gray-50 rounded">
+                            <p class="text-gray-600">Total Predictions</p>
+                            <p class="text-2xl font-bold">${data.success_count + data.failure_count}</p>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        async function clearAllData() {
+            if (!confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/clear_data', {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    alert('All data has been cleared successfully');
+                    loadSystemStats();
+                } else {
+                    alert('Error clearing data');
+                }
+            } catch (error) {
+                alert('Error clearing data: ' + error.message);
+            }
+        }
+
+        // Load initial statistics
+        loadSystemStats();
+        // Refresh statistics every 30 seconds
+        setInterval(loadSystemStats, 30000);
+    </script>
+</body>
+</html>
