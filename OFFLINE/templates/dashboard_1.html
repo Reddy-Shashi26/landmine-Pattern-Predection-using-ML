@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Mine Location Management</title>
+    <link href="static/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="static/leaflet.css" />
+    <script src="static/leaflet.js"></script>
+    <script src="static/socket.io.js"></script>
+    <style>
+        .marquee {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            background: linear-gradient(45deg, #1a365d, #2563eb);
+            padding: 10px 0;
+        }
+        
+        .marquee span {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Marquee -->
+    <div class="marquee">
+        <span>THIS PROJECT DONE BY CMR COLLEGE OF ENGINEERING AND TECHNOLOGY students : M.SHASHI VARDHAN REDDY, N.ANUHYA, G.SNEHA</span>
+    </div>
+
+    <!-- Updated Navigation -->
+    <nav class="bg-gray-800 text-white p-4">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Mine Location Management</h1>
+            <div class="flex items-center space-x-6">
+                <a href="{{ url_for('index') }}" class="hover:text-gray-300">Home</a>
+                <a href="{{ url_for('about') }}" class="hover:text-gray-300">About</a>
+                <a href="{{ url_for('logout') }}" class="hover:text-gray-300">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <!-- Sidebar -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-4">Location Files</h2>
+                <select id="fileSelect" class="w-full mb-4 p-2 border rounded">
+                    <option value="">Select a file</option>
+                    {% for file in files %}
+                    <option value="{{ file }}">{{ file }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button id="loadFile" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full mb-4">
+                    Load File
+                </button>
+                
+                <div class="mb-4">
+                    <h3 class="font-bold mb-2">Statistics</h3>
+                    <p>Active Mines: <span id="activeMines">0</span></p>
+                    <p>Defused Mines: <span id="defusedMines">0</span></p>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="md:col-span-3">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('http://127.0.0.1:8080/satellite/{z}/{x}/{y}.png', {
+            attribution: '© Shashi,Anuhya,sneha contributors'
+        }).addTo(map);
+
+        // Initialize Socket.IO
+        const socket = io();
+
+        // Map markers
+        let markers = {};
+        let userMarker = null;
+        let routeLine = null;
+
+        // Update statistics
+        function updateStats() {
+            const active = Object.values(markers).filter(m => m.options.status === 'active').length;
+            const defused = Object.values(markers).filter(m => m.options.status === 'defused').length;
+            document.getElementById('activeMines').textContent = active;
+            document.getElementById('defusedMines').textContent = defused;
+        }
+
+        // Load mine locations
+        async function loadMines(fileName) {
+            try {
+                const response = await fetch(`/api/mines?file=${fileName}`);
+                const mines = await response.json();
+
+                // Clear existing markers
+                Object.values(markers).forEach(marker => marker.remove());
+                markers = {};
+
+                // Add new markers
+                mines.forEach(mine => {
+                    const marker = L.marker([mine.latitude, mine.longitude], {
+                        status: mine.status
+                    });
+
+                    marker.setIcon(L.divIcon({
+                        className: 'mine-marker',
+                        html: `<div class="w-6 h-6 rounded-full ${mine.status === 'active' ? 'bg-red-500' : 'bg-green-500'}"></div>`
+                    }));
+
+                    if (mine.status === 'active') {
+                        marker.bindPopup(`
+                            <button onclick="defuseMine(${mine.id})" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm">
+                                Defuse Mine
+                            </button>
+                        `);
+                    }
+
+                    marker.addTo(map);
+                    markers[mine.id] = marker;
+                });
+
+                updateStats();
+                findNearestMine();
+            } catch (error) {
+                console.error('Error loading mines:', error);
+                alert('Error loading mine locations');
+            }
+        }
+
+        // Defuse mine
+        async function defuseMine(mineId) {
+            try {
+                const response = await fetch('/api/defuse-mine', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mine_id: mineId })
+                });
+
+                if (response.ok) {
+                    const marker = markers[mineId];
+                    marker.options.status = 'defused';
+                    marker.setIcon(L.divIcon({
+                        className: 'mine-marker',
+                        html: '<div class="w-6 h-6 rounded-full bg-green-500"></div>'
+                    }));
+                    marker.closePopup();
+                    updateStats();
+                    findNearestMine();
+                }
+            } catch (error) {
+                console.error('Error defusing mine:', error);
+                alert('Error defusing mine');
+            }
+        }
+
+        // Find nearest mine
+        async function findNearestMine() {
+            if (!userMarker) return;
+
+            try {
+                const response = await fetch('/api/nearest-mine', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        latitude: userMarker.getLatLng().lat,
+                        longitude: userMarker.getLatLng().lng
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (routeLine) {
+                        routeLine.remove();
+                    }
+
+                    routeLine = L.polyline([
+                        [userMarker.getLatLng().lat, userMarker.getLatLng().lng],
+                        [data.latitude, data.longitude]
+                    ], {
+                        color: 'blue',
+                        weight: 3,
+                        opacity: 0.7
+                    }).addTo(map);
+                }
+            } catch (error) {
+                console.error('Error finding nearest mine:', error);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('loadFile').addEventListener('click', () => {
+    const fileName = document.getElementById('fileSelect').value;
+    if (!fileName) {
+        alert('Please select a file');
+        return;
+    }
+
+    fetch('/api/load-file', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ file: fileName })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert(data.error);
+        } else {
+            alert(`File ${fileName} loaded successfully`);
+            loadMines(fileName); // Call your function to load mines from the file
+        }
+    })
+    .catch(error => {
+        console.error('Error loading file:', error);
+        alert('Error loading file');
+    });
+}); 
+
+
+// Get user's location
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(position => {
+                const { latitude, longitude } = position.coords;
+                
+                if (!userMarker) {
+                    userMarker = L.marker([latitude, longitude], {
+                        icon: L.divIcon({
+                            className: 'user-marker',
+                            html: '<div class="w-6 h-6 rounded-full bg-blue-500 border-2 border-white"></div>'
+                        })
+                    }).addTo(map);
+                } else {
+                    userMarker.setLatLng([latitude, longitude]);
+                }
+
+                findNearestMine();
+            });
+        }
+
+        // Socket.IO events
+        socket.on('mine_defused', data => {
+            const marker = markers[data.mine_id];
+            if (marker) {
+                marker.options.status = 'defused';
+                marker.setIcon(L.divIcon({
+                    className: 'mine-marker',
+                    html: '<div class="w-6 h-6 rounded-full bg-green-500"></div>'
+                }));
+                marker.closePopup();
+                updateStats();
+                findNearestMine();
+            }
+        });
+    </script>
+</body>
+</html>

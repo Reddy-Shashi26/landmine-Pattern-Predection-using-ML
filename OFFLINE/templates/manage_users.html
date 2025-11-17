@@ -1,0 +1,375 @@
+<!--
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users - Landmine Detection System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+                .marquee {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            background: linear-gradient(45deg, #1a365d, #2563eb);
+            padding: 10px 0;
+        }
+        
+        .marquee span {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        #map {
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+        
+        <div class="marquee">
+            <span>This project is done by CMR COLLEGE OF ENGINEERING AND TECHNOLOGY students : M.SHASHI VARDHAN REDDY, N.ANUHUYA, G.SNEHA</span>
+        </div>
+    <div class="min-h-screen">
+        <nav class="bg-gray-800 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Manage Users</h1>
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('admin_dashboard') }}" class="hover:text-gray-300">Dashboard</a>
+                    <a href="{{ url_for('logout') }}" class="hover:text-gray-300">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mx-auto px-4 py-8">
+            {% if error %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-bold mb-4">Add New User</h2>
+                <form action="{{ url_for('admin_add_user') }}" method="POST" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="username">
+                            Username
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                               id="username" name="username" type="text" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="password">
+                            Password
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                               id="password" name="password" type="password" required>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="is_admin" name="is_admin" value="1" class="mr-2">
+                        <label class="text-gray-700 text-sm font-bold" for="is_admin">
+                            Admin User
+                        </label>
+                    </div>
+                    <button type="submit"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                        Add User
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold mb-4">User List</h2>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-200">
+                                <th class="px-4 py-2">Username</th>
+                                <th class="px-4 py-2">Role</th>
+                                <th class="px-4 py-2">Created At</th>
+                                <th class="px-4 py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td class="border px-4 py-2">{{ user[1] }}</td>
+                                <td class="border px-4 py-2">{{ 'Admin' if user[3] else 'User' }}</td>
+                                <td class="border px-4 py-2">{{ user[4] }}</td>
+                                <td class="border px-4 py-2">
+                                    {% if user[1] != 'admin' %}
+                                    <form action="{{ url_for('admin_delete_user', user_id=user[0]) }}" method="POST" class="inline">
+                                        <button type="submit" onclick="return confirm('Are you sure you want to delete this user?')"
+                                                class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm">
+                                            Delete
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Users - Landmine Detection System</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav {
+            background-color: #1f2937;
+            color: white;
+            padding: 1rem;
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+
+        nav a:hover {
+            color: #9ca3af;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+
+        .marquee {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            background: linear-gradient(45deg, #1a365d, #2563eb);
+            padding: 10px 0;
+        }
+
+        .marquee span {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background-color: #2563eb;
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .btn:hover {
+            background-color: #1e40af;
+        }
+
+        .btn-danger {
+            background-color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th, table td {
+            border: 1px solid #d1d5db;
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        table th {
+            background-color: #f3f4f6;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            nav .container {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .form-group input {
+                width: 100%;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+
+            .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Marquee -->
+    <div class="marquee">
+        <span>This project is done by CMR COLLEGE OF ENGINEERING AND TECHNOLOGY students: M.SHASHI VARDHAN REDDY, N.ANUHUYA, G.SNEHA</span>
+    </div>
+
+    <div class="min-h-screen">
+        <nav>
+            <div class="container">
+                <h1>Manage Users</h1>
+                <div>
+                    <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            {% if error %}
+            <div style="background-color: #fee2e2; color: #b91c1c; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <div class="card">
+                <h2>Add New User</h2>
+                <form action="{{ url_for('admin_add_user') }}" method="POST">
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input id="username" name="username" type="text" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input id="password" name="password" type="password" required>
+                    </div>
+                    <div class="form-group">
+                        <input type="checkbox" id="is_admin" name="is_admin" value="1">
+                        <label for="is_admin">Admin User</label>
+                    </div>
+                    <button type="submit" class="btn">Add User</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>User List</h2>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Created At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user[1] }}</td>
+                                <td>{{ 'Admin' if user[3] else 'User' }}</td>
+                                <td>{{ user[4] }}</td>
+                                <td>
+                                    {% if user[1] != 'admin' %}
+                                    <form action="{{ url_for('admin_delete_user', user_id=user[0]) }}" method="POST" style="display: inline;">
+                                        <button type="submit" onclick="return confirm('Are you sure you want to delete this user?')" class="btn btn-danger">
+                                            Delete
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

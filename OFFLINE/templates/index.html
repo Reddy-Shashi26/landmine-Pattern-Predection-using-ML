@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landmine Detection System</title>
+    <link rel="stylesheet" href="static/leaflet.css" />
+    <link href="static/tailwind.min.css" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f0f0f0;
+        }
+
+        /* Add marquee styles */
+        .marquee {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            background: linear-gradient(45deg, #1a365d, #2563eb);
+            padding: 10px 0;
+        }
+        
+        .marquee span {
+            display: inline-block;
+            animation: marquee 30s linear infinite;
+            color: white;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        @keyframes marquee {
+            0% { transform: translateX(100%); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* Update navigation styles */
+        nav {
+            background: #000000;
+            padding: 10px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        nav h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 0;
+            color: white;
+        }
+
+        nav ul {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        nav ul li a:hover {
+            color: #93c5fd;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 60px); /* Adjusted height to account for the nav bar */
+            padding: 20px;
+            gap: 20px;
+        }
+
+        .left-panel {
+            width: 300px;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #map {
+            flex: 1;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group input {
+        
+        padding: 5px; /* Reduce padding */
+        font-size: 0.9rem; /* Adjust font size */
+    }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #666;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .primary-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 10px; /* Adjust button size */
+        font-size: 0.9rem; /* Smaller font size */
+        border-radius: 4px; /* Optional: rounded corners */
+        }
+
+        .secondary-button {
+            background-color: #2196F3;
+            color: white;
+            padding: 5px 10px; /* Adjust button size */
+        font-size: 0.9rem; /* Smaller font size */
+        border-radius: 4px; /* Optional: rounded corners */
+        }
+
+        .secondary2-button {
+            background-color: #2196F3;
+            color: white;
+            width: 100%;
+            padding: 5px 10px; /* Adjust button size */
+            font-size: 0.9rem; /* Smaller font size */
+            border-radius: 4px; /* Optional: rounded corners */
+        }
+
+        .success-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .failure-button {
+            background-color: #f44336;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .scrollable-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .prediction-controls {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .feedback-buttons {
+            margin-left: auto;
+            display: flex;
+            gap: 10px;
+        }
+
+        .statistics {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+        }
+
+        #statsDisplay {
+            display: grid;
+            gap: 10px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-upload {
+            margin-top: 5px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .file-upload label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #2196F3;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .file-upload label:hover {
+            opacity: 0.9;
+        }
+
+        .file-name {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+
+        .predicted-marker {
+            font-size: 24px; /* Adjust font size for the predicted marker */
+        }
+
+        .mine-marker {
+            font-size: 20px; /* Adjust font size for the mine markers */
+        }
+        .action-controls {
+        display: flex;
+        justify-content: space-around;
+        gap: 10px;
+    }
+
+    .action-controls button {
+        padding: 5px 10px; /* Minimized size */
+        font-size: 0.9rem; /* Smaller font size */
+    }
+
+    </style>
+</head>
+<body>
+    <!-- Marquee -->
+    <div class="marquee">
+        <span>THIS PROJECT DONE BY CMR COLLEGE OF ENGINEERING AND TECHNOLOGY students : M.SHASHI VARDHAN REDDY, N.ANUHYA, G.SNEHA</span>
+    </div>
+
+    <!-- Updated Navigation -->
+    <nav>
+        <h2>Landmine Detection System</h2>
+        <ul>
+            <li><a href="{{ url_for('index') }}">Home</a></li>
+            <li><a href="{{ url_for('admin_dashboard') }}">Statistics</a></li>
+            <!-- <li><a href="{{ url_for('navigate') }}">Defuse</a></li> -->
+            <li><a href="{{ url_for('manage_users') }}">Manage Users</a></li>
+            <li><a href="{{ url_for('about') }}">About</a></li>
+            <li><a href="{{ url_for('logout') }}">Logout</a></li>
+        </ul>
+    </nav>
+
+
+
+    <!-- Main Container -->
+    <div class="container">
+        <div class="left-panel">
+            <!-- <h1>Landmine Detection System</h1> -->
+            
+            <div class="input-section">
+                <h2>Add Mine Location</h2>
+                <div class="input-group">
+                    <label for="latitude">Latitude:</label>
+                    <input type="number" id="latitude" step="any" required>
+                </div>
+                <div class="input-group">
+                    <label for="longitude">Longitude:</label>
+                    <input type="number" id="longitude" step="any" required>
+                </div>
+                <button onclick="addLocation()" class="primary-button">Add Location</button>
+            </div>
+            <div class="file-upload">
+                <h2>Load from CSV</h2>
+                <button id="uploadCSVButton" class="secondary2-button">Choose and Upload CSV</button>
+                <input type="file" id="csvFile" accept=".csv" style="display: none;" onchange="uploadCSV()">
+                <div id="fileName" class="file-name"></div>
+            </div>
+
+            <div class="action-controls">
+                <button onclick="saveLocations()" class="secondary-button">Save Locations </button>
+                <button onclick="clearAllLocations()" class="secondary-button">Clear All </button>
+            </div>
+
+            <!-- <div class="file-upload">
+                <h2>Load from CSV</h2>
+                <label for="csvFile">
+                    Choose CSV File
+                    <input type="file" id="csvFile" accept=".csv" onchange="handleFileSelect(this)">
+                </label>
+                <div id="fileName" class="file-name"></div>
+                <button onclick="uploadCSV()" class="secondary-button">Upload CSV</button>
+            </div> -->
+
+
+
+            <div class="locations-list">
+                <h2>Recorded Locations</h2>
+                <div id="locationsList" class="scrollable-list"></div>
+            </div>
+
+            <!-- <div class="statistics">
+                <h2>Statistics</h2>
+                <div id="statsDisplay"></div>
+            </div> -->
+        </div>
+
+        <div class="right-panel">
+            <div id="map"></div>
+            
+            <div class="prediction-controls">
+                <button onclick="predict()" class="primary-button">Predict Next Mine</button>
+                <button onclick="detectPattern()" class="secondary-button">Detect Pattern</button>
+                <div class="feedback-buttons">
+                    <button onclick="provideFeedback(true)" class="success-button">Mark Success</button>
+                    <button onclick="provideFeedback(false)" class="failure-button">Mark Failure</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="static/leaflet.js"></script>
+    <script>
+        let map;
+        let mineMarkers = [];
+        let predictedMarker = null;
+
+        // function initMap() {
+        //     map = L.map('map').setView([0, 0], 2);
+        //     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        //         attribution: '© OpenStreetMap contributors'
+        //     }).addTo(map);
+        // }
+
+
+
+
+
+        
+            function initMap() {
+        // Default map view (OpenStreetMap)
+        const defaultLayer =L.tileLayer('http://127.0.0.1:8080/osm/{z}/{x}/{y}.png', {
+            attribution: '© Shashi,Anuhya,sneha contributors'
+        });
+    
+        // Satellite view (ESRI World Imagery)
+        const satelliteLayer = 
+        // L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        //     attribution: 'Tiles © Esri — Source: Esri, DeLorme, NAVTEQ, USGS, Intermap, iPC, NRCAN, Esri Japan, METI, Esri China (Hong Kong), Esri (Thailand), TomTom, 2012'
+        // });
+         L.tileLayer('http://127.0.0.1:8080/satellite/{z}/{x}/{y}.jpg', {
+            attribution: '© Shashi,Anuhya,sneha contributors'
+        });
+    
+        // Initialize the map
+        map = L.map('map', {
+            center: [0, 0], // Default center
+            zoom: 2,       // Default zoom level
+            layers: [defaultLayer] // Set the default layer
+        });
+    
+        // Add layer control to toggle between default and satellite views
+        const baseMaps = {
+            "Default View": defaultLayer,
+            "Satellite View": satelliteLayer
+        };
+    
+        L.control.layers(baseMaps).addTo(map);
+        // L.circleMarker([data.latitude, data.longitude], {
+        //     color: 'yellow', // Yellow border
+        //     fillColor: 'yellow', // Yellow fill
+        //     fillOpacity: 0.8,
+        //     radius: 10 // Adjust the size of the marker
+        // }).addTo(map);
+    }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            updateStatistics();
+            loadLocations();
+        });
+
+        function handleFileSelect(input) {
+            const fileName = input.files[0]?.name || 'No file selected';
+            document.getElementById('fileName').textContent = fileName;
+        }
+
+        document.getElementById('uploadCSVButton'). addEventListener('click', () => {
+            // Trigger the file input dialog
+            document.getElementById('csvFile').click();
+        });
+
+        async function uploadCSV() {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a CSV file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/upload_csv', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                // Clear file input
+                fileInput.value = '';
+                document.getElementById('fileName').textContent = '';
+
+                // Refresh the display
+                loadLocations();
+                updateStatistics();
+
+                if (data.pattern) {
+                    alert(`Pattern detected: ${data.pattern.pattern} (Confidence: ${data.pattern.confidence.toFixed(1)}%)`);
+                }
+
+                alert(data.message);
+            } catch (error) {
+                alert('Error uploading CSV: ' + error.message);
+            }
+        }
+
+        async function addLocation() {
+            const lat = parseFloat(document.getElementById('latitude').value);
+            const lon = parseFloat(document.getElementById('longitude').value);
+
+            if (isNaN(lat) || isNaN(lon)) {
+                alert('Please enter valid coordinates');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/add_location', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lon
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                document.getElementById('latitude').value = '';
+                document.getElementById('longitude').value = '';
+
+                loadLocations();
+                updateStatistics();
+
+                if (data.pattern) {
+                    alert(`Pattern detected: ${data.pattern.pattern} (Confidence: ${data.pattern.confidence.toFixed(1)}%)`);
+                }
+            } catch (error) {
+                alert('Error adding location: ' + error.message);
+            }
+        }
+
+        // async function predict() {
+        //     try {
+        //         const response = await fetch('/api/predict');
+        //         const data = await response.json();
+            
+        //         if (data.error) {
+        //             alert(data.error);
+        //             return;
+        //         }
+            
+        //         // Remove the previous predicted marker
+        //         if (predictedMarker) {
+        //             map.removeLayer(predictedMarker);
+        //         }
+            
+        //         // Add the default Leaflet marker for the predicted location
+        //         predictedMarker = L.marker([data.latitude, data.longitude]).addTo(map);
+            
+        //         // Add mine markers
+        //         data.mine_locations.forEach((loc, index) => {
+        //             const marker = L.marker([loc[0], loc[1]]).addTo(map);
+        //             mineMarkers.push(marker);
+        //         });
+            
+        //         map.setView([data.latitude, data.longitude], map.getZoom());
+            
+        //         alert(`Prediction confidence: ${data.confidence.toFixed(1)}%`);
+        //     } catch (error) {
+        //         alert('Error making prediction: ' + error.message);
+        //     }
+        // }
+
+        async function predict() {
+    try {
+        const response = await fetch('/api/predict');
+        const data = await response.json();
+    
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+    
+        // Remove the previous predicted marker
+        if (predictedMarker) {
+            map.removeLayer(predictedMarker);
+        }
+    
+        // Add the predicted marker in yellow
+        predictedMarker = L.circleMarker([data.latitude, data.longitude], {
+            color: 'orange', // Yellow border
+            fillColor: 'orange', // Yellow fill
+            fillOpacity: 0.8,
+            radius: 10 // Adjust the size of the marker
+        }).addTo(map);
+    
+        // Add mine markers
+        data.mine_locations.forEach((loc, index) => {
+            const marker = L.marker([loc[0], loc[1]]).addTo(map);
+            mineMarkers.push(marker);
+        });
+    
+        map.setView([data.latitude, data.longitude], map.getZoom());
+    
+        alert(`Prediction confidence: ${data.confidence.toFixed(1)}%`);
+    } catch (error) {
+        alert('Error making prediction: ' + error.message);
+    }
+}
+        
+        async function detectPattern() {
+            try {
+                const response = await fetch('/api/detect_pattern');
+                const data = await response.json();
+
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                alert(`Detected pattern: ${data.pattern} (Confidence: ${data.confidence.toFixed(1)}%)`);
+            } catch (error) {
+                alert('Error detecting pattern: ' + error.message);
+            }
+        }
+
+        // async function provideFeedback(success) {
+        //     if (!predictedMarker) {
+        //         alert('No prediction to provide feedback for');
+        //         return;
+        //     }
+
+        //     try {
+        //         const response = await fetch('/api/feedback', {
+        //             method: 'POST',
+        //             headers: {
+        //                 'Content-Type': 'application/json'
+        //             },
+        //             body: JSON.stringify({
+        //                 success: success
+        //             })
+        //         });
+
+        //         const data = await response.json();
+
+        //         if (data.error) {
+        //             alert(data.error);
+        //             return;
+        //         }
+
+        //         updateStatistics();
+        //         loadLocations();
+
+        //         map.removeLayer(predictedMarker);
+        //         predictedMarker = null;
+
+        //         if (data.message === "Maximum failure attempts reached") {
+        //             alert('Maximum failure attempts reached. Please try a new prediction.');
+        //         }
+        //     } catch (error) {
+        //         alert('Error providing feedback: ' + error.message);
+        //     }
+//         // }
+
+//         async function provideFeedback(success) {
+//     if (!predictedMarker) {
+//         alert('No prediction to provide feedback for');
+//         return;
+//     }
+
+//     try {
+//         const response = await fetch('/api/feedback', {
+//             method: 'POST',
+//             headers: {
+//                 'Content-Type': 'application/json'
+//             },
+//             body: JSON.stringify({
+//                 success: success
+//             })
+//         });
+
+//         const data = await response.json();
+
+//         if (data.error) {
+//             alert(data.error);
+//             return;
+//         }
+
+//         // Update the predicted marker's color based on feedback
+//         if (success) {
+//             // Change to red for success
+//             predictedMarker.setStyle({
+//                 color: 'red',
+//                 fillColor: 'red',
+//                 fillOpacity: 0.8
+//             });
+//         } else {
+//             // Change to blue for failure
+//             predictedMarker.setStyle({
+//                 color: 'blue',
+//                 fillColor: 'blue',
+//                 fillOpacity: 0.8
+//             });
+//         }
+
+//         updateStatistics();
+//         loadLocations();
+
+//         if (data.message === "Maximum failure attempts reached") {
+//             alert('Maximum failure attempts reached. Please try a new prediction.');
+//         }
+//     } catch (error) {
+//         alert('Error providing feedback: ' + error.message);
+//     }
+// }
+
+async function provideFeedback(success) {
+    if (!predictedMarker) {
+        alert('No prediction to provide feedback for');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                success: success
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        // Update the predicted marker's color based on feedback
+        if (success) {
+            // Change to green for success
+            predictedMarker.setStyle({
+                color: 'green',
+                fillColor: 'green',
+                fillOpacity: 0.8
+            });
+        } else {
+            // Change to red for failure with low opacity
+            predictedMarker.setStyle({
+                color: 'red',
+                fillColor: 'red',
+                fillOpacity: 0.05
+            });
+
+            // Optionally, add a circle around the failed location
+            const failureCircle = L.circle([predictedMarker.getLatLng().lat, predictedMarker.getLatLng().lng], {
+                color: 'red',
+                fillColor: 'red',
+                fillOpacity: 0.2,
+                radius: 25 // 3 meters
+            }).addTo(map);
+        }
+
+        updateStatistics();
+        loadLocations();
+
+        if (data.message === "Maximum failure attempts reached") {
+            alert('Maximum failure attempts reached. Please try a new prediction.');
+        }
+    } catch (error) {
+        alert('Error providing feedback: ' + error.message);
+    }
+}
+        async function updateStatistics() {
+            try {
+                const response = await fetch('/api/statistics');
+                const data = await response.json();
+
+                const statsHtml = `
+                    <div class="stat-item">
+                        <span>Total Locations:</span>
+                        <span>${data.total_locations}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Pattern Type:</span>
+                        <span>${data.pattern_type}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Success Count:</span>
+                        <span>${data.success_count}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Failure Count:</span>
+                        <span>${data.failure_count}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span>Accuracy:</span>
+                        <span>${data.accuracy.toFixed(1)}%</span>
+                    </div>
+                `;
+
+                document.getElementById('statsDisplay').innerHTML = statsHtml;
+            } catch (error) {
+                console.error('Error updating statistics:', error);
+            }
+        }
+
+        async function loadLocations() {
+            try {
+                const response = await fetch('/api/locations');
+                const data = await response.json();
+            
+                // Remove existing markers from the map
+                mineMarkers.forEach(marker => map.removeLayer(marker));
+                mineMarkers = [];
+            
+                // Add default Leaflet markers for mine locations
+                data.mine_locations.forEach((loc, index) => {
+                    const marker = L.circleMarker([loc[0], loc[1]], {
+                    color: 'red', // red border
+                    fillColor: 'red', // red fill
+                    fillOpacity: 0.8,
+                    radius: 6 // Adjust the size of the marker
+                }).addTo(map);
+                    mineMarkers.push(marker);
+                });
+        //         predictedMarker = L.circleMarker([data.latitude, data.longitude], {
+        //     color: 'yellow', // Yellow border
+        //     fillColor: 'yellow', // Yellow fill
+        //     fillOpacity: 0.8,
+        //     radius: 10 // Adjust the size of the marker
+        // }).addTo(map);
+
+
+            
+                // Update the locations list
+                const locationsHtml = data.mine_locations.map((loc, index) => `
+                    <div class="location-item">
+                        Mine ${index + 1}: Lat ${loc[0].toFixed(6)}, Lon ${loc[1].toFixed(6)}
+                    </div>
+                `).join('');
+                document.getElementById('locationsList').innerHTML = locationsHtml;
+                
+                // Center the map on the last location
+                if (data.mine_locations.length > 0) {
+                    const lastLoc = data.mine_locations[data.mine_locations.length - 1];
+                    map.setView([lastLoc[0], lastLoc[1]], 10);
+                }
+            } catch (error) {
+                console.error('Error loading locations:', error);
+            }
+        }
+    
+        async function saveLocations() {
+    if (mineMarkers.length === 0) {
+        alert('No locations to save.');
+        return;
+    }
+
+    // Prepare the locations data
+    const locations = mineMarkers.map(marker => {
+        const latLng = marker.getLatLng();
+        return [latLng.lat, latLng.lng];
+    });
+
+    try {
+        const response = await fetch('/api/save_locations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ locations })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        alert(data.message);
+    } catch (error) {
+        alert('Error saving locations: ' + error.message);
+    }
+}
+    
+        async function clearAllLocations() {
+    if (!confirm('Are you sure you want to clear all locations?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/clear_locations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        // Clear markers from the map
+        mineMarkers.forEach(marker => map.removeLayer(marker));
+        mineMarkers = [];
+
+        if (predictedMarker) {
+            map.removeLayer(predictedMarker);
+            predictedMarker = null;
+        }
+
+        // Refresh statistics and alert the user
+        updateStatistics();
+        alert(data.message);
+    } catch (error) {
+        alert('Error clearing locations: ' + error.message);
+    }
+}
+    
+    
+    </script>
+</body>
+</html>
